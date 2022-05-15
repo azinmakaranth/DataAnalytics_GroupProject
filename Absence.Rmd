@@ -1,0 +1,321 @@
+```{r}
+library(tidyverse)
+library(DataExplorer)
+library(ggthemes)
+library(grid)
+library(gridExtra)
+library(factoextra)
+library(FactoMineR)
+library(xlsx)
+library(dplyr)
+```
+
+
+
+
+```{r}
+data <- read.xlsx("data.xlsx", 1, header = TRUE)
+
+```
+
+```{r}
+# converting variables to factors
+
+# converting variables to factors
+
+col <- c(2:5,12:17)
+absenteeism_at_work_factored <- data
+absenteeism_at_work_factored[col] <- lapply(absenteeism_at_work_factored[col], factor)
+
+# converting codes to meaningful information
+
+absenteeism_at_work_factored <- absenteeism_at_work_factored %>%
+  mutate(`Reason.for.absence` = fct_recode(`Reason.for.absence`,`Infectious, parasitic diseases`="0", `Neoplasms`="1",`Diseases of the blood`="2",`Endocrine and metabolic diseases`="3",`Mental and behavioural disorders`="4",`Diseases of the nervous system`="5",`Diseases of the eye and adnexa`="6",`Diseases of the ear and mastoid process`="7",`Diseases of the circulatory system`="8",`Diseases of the respiratory system`="9",`Diseases of the digestive system`="10", `Diseases of the skin and subcutaneous tissue`="11",`Diseases of the musculoskeletal system and connective tissue`="12", `Diseases of the genitourinary system`="13",`Pregnancy, childbirth and the puerperium`="14",`Certain conditions originating in the perinatal`="15",  `Congenital malformations, deformations and chromosomal abnormalities`= "16",`Symptoms, signs and abnormal clinical  findings`="17", `Injury, poisoning and certain other consequences of external causes`= "18",`causes of morbidity and mortality`="19", `Factors influencing health status and contact with health services`="21",`patient follow-up`="22",`medical consultation`="23",`blood donation`="24", `laboratory examination`="25", `unjustified absence`="26", `physiotherapy`="27", `dental consultation`="28"))
+
+absenteeism_at_work_factored <- absenteeism_at_work_factored %>%
+  mutate(`Month.of.absence`= fct_recode(`Month.of.absence`,None="0",Jan="1",Feb="2",Mar="3",Apr="4",May="5", Jun="6",Jul="7",Aug="8",Sep="9",Oct="10",Nov="11",Dec="12") )
+
+absenteeism_at_work_factored <- absenteeism_at_work_factored %>%
+  mutate(Seasons= fct_recode(Seasons,summer="1",autumn="2",winter="3",spring="4"))
+
+absenteeism_at_work_factored <- absenteeism_at_work_factored %>%
+  mutate(Education = fct_recode(Education,highschool="1",graduate="2",postgraduate="3",`master& doctrate`="4"))
+
+absenteeism_at_work_factored <- absenteeism_at_work_factored %>%
+  mutate(`Disciplinary.failure`= fct_recode(`Disciplinary.failure`,No="0",Yes="1"))
+
+absenteeism_at_work_factored <- absenteeism_at_work_factored %>%
+  mutate(`Social.drinker`= fct_recode(`Social.drinker`,No="0",Yes="1"))
+
+absenteeism_at_work_factored <- absenteeism_at_work_factored %>%
+  mutate(`Social.smoker`= fct_recode(`Social.smoker`,No="0",Yes="1"))
+
+absenteeism_at_work_factored <- absenteeism_at_work_factored %>%
+  mutate(`Day.of.the.week` = fct_recode(`Day.of.the.week`, Monday="2", Tuesday="3", Wednesday="4", Thursday="5", Friday="6"))
+
+```
+
+
+```{r}
+p <- absenteeism_at_work_factored %>% 
+  ggplot() +
+  aes(x = Pet, fill = Pet) + 
+  geom_bar() 
+
+s <- absenteeism_at_work_factored %>% 
+  ggplot() + 
+  aes(x = Son, fill = Son) + 
+  geom_bar()
+
+SS <- absenteeism_at_work_factored %>% 
+  ggplot() + 
+  aes(x =`Social.smoker`, fill =`Social.drinker`) + 
+  geom_bar() 
+
+S <- absenteeism_at_work_factored %>% 
+  ggplot() + 
+  aes(x =   Seasons,fill = Seasons) + 
+  geom_bar()
+
+Day <- absenteeism_at_work_factored %>% 
+  ggplot() + 
+  aes(x =`Day.of.the.week`, fill =`Day.of.the.week`) + 
+  geom_bar() 
+
+grid.arrange(p,s, nrow = 1)
+```
+
+
+```{r}
+grid.arrange(SS,S, nrow = 1)
+
+```
+```{r}
+grid.arrange(Day, nrow = 1)
+```
+
+
+
+```{r}
+absent <- as.data.frame(absenteeism_at_work_factored %>% dplyr::select(everything()) %>% dplyr::filter(`Absenteeism.time.in.hours` > 0))
+
+season1 <- as.data.frame(absent %>% dplyr::group_by(Seasons) %>% dplyr::summarise(count= n(), percent = round(count*100/nrow(absent),1)) %>% arrange(desc(count)))
+
+season1 %>%
+ggplot() + 
+  aes(x= reorder(Seasons,percent), y= percent, fill = Seasons) +
+  geom_bar(stat='identity') + 
+  coord_flip() +
+  geom_text(aes(label = percent), vjust = 1.1, hjust = 1.2) + 
+  xlab('Seasons')
+```
+
+
+```{r}
+disciplinary <- as.data.frame(absent %>% dplyr::group_by(`Disciplinary.failure`) %>% dplyr::summarise(count= n(), percent = round(count*100/nrow(absent),1))%>% arrange(desc(count)))
+
+disciplinary %>%
+  ggplot() + 
+  aes(x= reorder(`Disciplinary.failure`,percent), 
+      y= percent, fill = `Disciplinary.failure`) + 
+  geom_bar(stat='identity') + 
+  coord_flip() +
+  geom_text(aes(label = percent), vjust = 1.1, hjust = 1.2) + 
+  xlab('Disciplinary failure')
+```
+
+
+```{r}
+Reason <-  as.data.frame(absent %>% group_by(`Reason.for.absence`) %>% dplyr::summarise(count= n(), percent = round(count*100/nrow(absent),1))%>% arrange(desc(count)))
+
+Reason %>%
+ggplot() + 
+  aes(x = reorder(`Reason.for.absence`,percent), 
+      y= percent, fill= `Reason.for.absence`) + 
+  geom_bar(stat = 'identity') + 
+  coord_flip() + 
+  theme(legend.position='none') +  
+  geom_text(aes(label = percent), vjust = 0.5, hjust = 1.1) + 
+  xlab('Reason for absence')
+```
+
+```{r}
+absent %>%
+ggplot() + 
+  aes(x= Age,y= `Absenteeism.time.in.hours`,fill= `Social.drinker`)+ 
+  geom_bar(stat='identity',position= position_dodge()) + 
+  scale_x_continuous(breaks =c(seq(20,60,5)),limits=c(20,60))
+```
+
+
+```{r}
+absent %>%
+ggplot() + 
+  aes(x= `Service.time`,
+      y= `Hit.target`) + 
+  geom_point() + 
+  geom_smooth(method = 'loess') + 
+  ggtitle('Analysis of Hit target across Service time') + 
+  xlab('Service time(years)') + 
+  ylab('Hit target(%)')
+```
+
+
+```{r}
+absent %>%
+ggplot() + 
+  aes(x= Age,y= `Hit.target`) + 
+  geom_point() + 
+  geom_smooth(method = 'loess') + 
+  labs(title='Analysis of Hit target across Age',
+       x='Age',
+       y='Hit target(%)')
+```
+
+```{r}
+absent %>%
+ggplot() + 
+  aes(x= Age,y= `Service.time`) + 
+  geom_point() + 
+  geom_smooth(method = 'lm') + 
+  labs(title='Analysis of Service time across Age',
+       x='Age',
+       y='Service time')
+```
+
+```{r}
+
+d1 <- data %>%
+  dplyr::select(-ID) %>%
+  dplyr::select(-`Absenteeism.time.in.hours`)
+
+d1 <- scale(d1)   
+```
+
+
+```{r}
+pcaex <- PCA(d1,graph = F) 
+
+#The output of the function PCA() is a list including :
+print(pcaex)
+```
+
+```{r}
+#The proportion of variation retained by the principal components (PCs) can be extracted as follow :
+
+egv1 <- get_eigenvalue(pcaex)
+head(egv1[, 1:2])
+```
+
+
+```{r}
+#Here, 60% of the information (variances) contained in the data are retained by the first six principal components.
+
+#The amount of variation retained by each PC is called eigenvalues. The first PC corresponds to the direction with the maximum amount of variation in the data set.
+#The importance of PCs can be visualized using a scree plot :
+
+#Plot the eigenvalues/variances against the number of dimensions
+
+# eigen values -
+egv1 <- get_eigenvalue(pcaex)
+fviz_eig(pcaex,addlabels=T)
+```
+
+```{r}
+# correlation of variables with PCA components-
+fviz_pca_var(pcaex,col.var='red')
+```
+
+```{r}
+pcaex$var$contrib
+```
+
+```{r}
+# quality of presentation of variables in correlogram-
+fviz_cos2(pcaex,choice='var',axes=1:2)
+```
+
+
+```{r}
+# contribution of variables to the respective principal components-
+fviz_contrib(pcaex,choice='var',axes=1)
+```
+```{r}
+fviz_contrib(pcaex,choice='var',axes=2)
+```
+
+
+```{r}
+fviz_contrib(pcaex,choice='var',axes=3)
+```
+```{r}
+fviz_contrib(pcaex,choice='var',axes=4)
+```
+```{r}
+fviz_contrib(pcaex,choice='var',axes=5)
+```
+
+
+```{r}
+
+Data <- read.xlsx("data.xlsx", 1, header = TRUE)
+
+```
+
+
+```{r}
+#Train/Test split
+#install.packages("caTools")
+library("caTools")
+set.seed(123)
+split <- sample.split(Data, SplitRatio=0.8)
+train <- subset(Data, split==TRUE)
+test <- subset(Data, split==FALSE)
+
+trainw <- train
+testw <- test
+
+#install.packages("rpart")
+#install.packages("rpart.plot")
+library("rpart")
+library("rpart.plot")
+```
+
+```{r}
+#Regression Tree
+RT <- rpart(Absenteeism.time.in.hours~.,data=train,control=rpart.control(maxdepth=3))
+RT
+rpart.plot(RT, box.palette = "RdBu", digits = -3)
+testw$est <- predict(RT, testw, type="vector")
+MSE <- mean((testw$est-testw$Collection)^2)
+
+CM <- table(testw$Absenteeism.time.in.hours, testw$est)
+
+```
+
+
+```{r}
+RMSE(testw$est, testw$Absenteeism.time.in.hours)
+```
+
+
+```{r}
+#Random Forest (RT)
+library(randomForest)
+
+RF <- randomForest(Absenteeism.time.in.hours~.,data=train, ntree=500)
+testw$rf <- predict(RF, test)
+RMSE(testw$rf, testw$Absenteeism.time.in.hours)
+```
+
+```{r}
+library(adabag)
+
+adaboostCT <- boosting(Absenteeism.time.in.hours~., data=train,method='class',
+                       control=rpart.control(maxdepth=6), boos=TRUE) 
+pred_adaCT <- predict(adaboostCT, testw)
+RMSE(pred_adaCT, testw$Absenteeism.time.in.hours)
+
+```
+
+
